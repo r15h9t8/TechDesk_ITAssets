@@ -1,0 +1,155 @@
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('EMPLOYEE', 'IT_ADMIN', 'MANAGER') NOT NULL,
+    department VARCHAR(100),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP,
+    reset_token VARCHAR(255)
+);
+
+
+CREATE TABLE vendors (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    contact_info VARCHAR(255),
+    rating INT,
+    active BOOLEAN DEFAULT TRUE
+);
+
+
+CREATE TABLE it_assets (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    asset_tag VARCHAR(50) NOT NULL UNIQUE,
+    type ENUM('LAPTOP', 'DESKTOP', 'MOBILE', 'PERIPHERAL') NOT NULL,
+    model VARCHAR(100),
+    serial_number VARCHAR(100),
+    purchase_date DATE,
+    status ENUM('AVAILABLE', 'ALLOCATED', 'UNDER_MAINTENANCE', 'RETIRED', 'DISPOSED') NOT NULL,
+    assigned_to BIGINT,
+    vendor_id BIGINT,
+    current_value DECIMAL(10,2),
+    depreciation_rate DECIMAL(5,2),
+    location VARCHAR(100),
+    FOREIGN KEY (assigned_to) REFERENCES users(id),
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+);
+
+
+CREATE TABLE asset_requests (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    request_number VARCHAR(100) UNIQUE NOT NULL,
+    requester_id BIGINT NOT NULL,
+    asset_type VARCHAR(50),
+    justification TEXT,
+    priority ENUM('LOW', 'MEDIUM', 'HIGH'),
+    status ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
+    manager_comments TEXT,
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    approved_at TIMESTAMP,
+    rejected_at TIMESTAMP,
+    department VARCHAR(100),
+    FOREIGN KEY (requester_id) REFERENCES users(id)
+);
+
+
+CREATE TABLE support_tickets (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    ticket_number VARCHAR(100) UNIQUE NOT NULL,
+    created_by_id BIGINT NOT NULL,
+    assigned_to_id BIGINT,
+    asset_id BIGINT,
+    problem_description TEXT,
+    status ENUM('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED') DEFAULT 'OPEN',
+    priority ENUM('LOW', 'MEDIUM', 'HIGH'),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    FOREIGN KEY (created_by_id) REFERENCES users(id),
+    FOREIGN KEY (assigned_to_id) REFERENCES users(id),
+    FOREIGN KEY (asset_id) REFERENCES it_assets(id)
+);
+
+
+CREATE TABLE maintenance_schedules (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    asset_type VARCHAR(50),
+    interval_days INT,
+    next_maintenance_date DATE,
+    reminder_set BOOLEAN DEFAULT FALSE
+);
+
+
+CREATE TABLE maintenance_logs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    asset_id BIGINT,
+    performed_by_id BIGINT,
+    maintenance_date DATE,
+    description TEXT,
+    status ENUM('COMPLETED', 'PENDING'),
+    FOREIGN KEY (asset_id) REFERENCES it_assets(id),
+    FOREIGN KEY (performed_by_id) REFERENCES users(id)
+);
+
+
+CREATE TABLE asset_return_requests (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    requester_id BIGINT,
+    asset_id BIGINT,
+    reason TEXT,
+    status ENUM('INITIATED', 'IN_REVIEW', 'APPROVED', 'COMPLETED'),
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP,
+    FOREIGN KEY (requester_id) REFERENCES users(id),
+    FOREIGN KEY (asset_id) REFERENCES it_assets(id)
+);
+
+
+CREATE TABLE asset_disposals (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    asset_id BIGINT,
+    disposal_reason TEXT,
+    disposal_date DATE,
+    disposal_certificate VARCHAR(255),
+    status ENUM('PENDING', 'DISPOSED'),
+    processed_by_id BIGINT,
+    FOREIGN KEY (asset_id) REFERENCES it_assets(id),
+    FOREIGN KEY (processed_by_id) REFERENCES users(id)
+);
+
+
+CREATE TABLE purchase_orders (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    order_number VARCHAR(100) UNIQUE NOT NULL,
+    vendor_id BIGINT,
+    order_date DATE,
+    total_cost DECIMAL(10, 2),
+    status ENUM('PENDING', 'COMPLETED', 'CANCELLED'),
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id)
+);
+
+
+CREATE TABLE policies (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    created_by_id BIGINT,
+    department VARCHAR(100),
+    asset_type VARCHAR(50),
+    budget_limit DECIMAL(10, 2),
+    approval_workflow_defined BOOLEAN,
+    compliance_status VARCHAR(50),
+    FOREIGN KEY (created_by_id) REFERENCES users(id)
+);
+
+
+CREATE TABLE audit_logs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    action VARCHAR(255),
+    performed_by_id BIGINT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    details TEXT,
+    ip_address VARCHAR(50),
+    FOREIGN KEY (performed_by_id) REFERENCES users(id)
+);
+
